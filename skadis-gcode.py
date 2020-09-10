@@ -3,8 +3,8 @@
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-H", "--height", dest='height', action='store', type=int, help="Height of Board")
-parser.add_argument("-w", "--width", dest='width', action='store',  type=int, help="Width of Board")
+parser.add_argument("-H", "--height", required='true', dest='height', action='store', type=int, help="Height of Board")
+parser.add_argument("-w", "--width", required='true', dest='width', action='store',  type=int, help="Width of Board")
 parser.add_argument("-b", "--border", dest='border', action='store',  type=int, help="Top/Bottom Border, adds 5 for sides")
 parser.add_argument("-s", "--skip", dest='skip', action='store_true', help="Skip every other line")
 parser.add_argument("-i", "--inline", dest='inline', action='store_true', help="Inline cuts")
@@ -30,28 +30,29 @@ def cutslot(x, y):
 def move(x, y):
     print ("G0 X" + str(x), "Y" +str(y), "F150")
 
-wwidth = int((args.width-(border*2+10))/2)
-wheight = int((args.height-(border *2))/2)
+def process(b, y):
+    shift=0
+    if b and not args.inline: shift=20
+    # track alternating lines
+    global a
+    a = not b
+    for x in range(-w_width+shift, w_width-shift, 40):
+        # plunge, travel down y+10
+        move(x, y)
+        plunge()
+        cutslot(x, y)
+        raise2()
 
-# Row Height, defined by Y location
-global a
+
+# These center the workspace and calculate the +/- range that the cuts will be made in
+w_width = int((args.width-(border*2+10))/2)
+w_height = int((args.height-(border *2))/2)
 a = bool(1)
+
 header()
-for y in range(-wheight, wheight, 20):
-    if a:
-      if not args.inline: a = bool(0)
-      for x in range(-wwidth+20, wwidth-20, 40):
-          # plunge, travel down y+10
-          move(x, y)
-          plunge()
-          cutslot(x, y)
-          raise2()
-    else:
-      a = bool(1)
-      if not args.skip:
-          for x in range(-wwidth, wwidth, 40):
-          # plunge, travel down y+10
-              move(x, y)
-              plunge()
-              cutslot(x, y)
-              raise2()
+
+y=-w_height
+while y+20 < w_height:
+    process(a, y)
+    if args.skip: y += 40
+    else: y += 20
